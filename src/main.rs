@@ -1,9 +1,12 @@
 use std::env;
 use std::process::Command;
+use std::process::exit;
 
 use futures::StreamExt;
 
 use telegram_bot::*;
+
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 fn flexget_command(flexget_path: &str, flexget_command: &str) {
     let command = Command::new("sh")
@@ -74,6 +77,15 @@ async fn dispatch_chat_id(api: Api, message: Message) -> Result<(), Error> {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+    let args: Vec<String> = env::args().collect();
+    if args.len() > 1 {
+        let command = &args[1];
+        if command == "--version" {
+            println!("{}", VERSION);
+            exit(0);
+        }
+    }
+
     let allowed_groups: Vec<ChatId> = match env::var("TELEGRAM_ALLOWED_GROUPS") {
         Ok(val) => val
             .split(",")
