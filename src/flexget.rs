@@ -1,66 +1,62 @@
-fn flexget_command(flexget_path: &str, flexget_command: &str) {
+use std::env;
+use std::process::Command;
+
+fn flexget_path() -> Option<String> {
+    match env::var("FLEXGET_PATH") {
+        Ok(host) => Some(host),
+        Err(_) => None,
+    }
+}
+
+fn flexget_command(flexget_command: String) -> Result<(), &'static str> {
+    let path = flexget_path().unwrap();
+
     let command = Command::new("sh")
         .arg("-c")
-        .arg(format!("flexget execute {}", flexget_command))
-        .current_dir(flexget_path)
+        .arg(format!("lslsls execute {}", flexget_command))
+        .current_dir(path)
         .output();
 
     match command {
         Ok(c) => {
-            println!("Stderr: {}", String::from_utf8_lossy(&c.stderr));
-            println!("Stdout: {}", String::from_utf8_lossy(&c.stdout));
+            if c.status.success() {
+                return Ok(());
+            } else {
+                println!("Stderr: {}", String::from_utf8_lossy(&c.stderr));
+                return Err("Error command-line");
+            }
+            // println!("Stdout: {}", String::from_utf8_lossy(&c.stdout));
         }
         Err(err) => {
-            println!("{}", err);
-            return;
+            println!("Error: {}", err.to_string());
+            return Err("Error");
         }
     }
 }
 
-async fn dispatch_sync(api: Api, message: Message, flexget_path: &str) -> Result<(), Error> {
-    flexget_command(flexget_path, "--no-cache --discover-now");
-
-    api.send(message.chat.text("Finished syncing")).await?;
-
-    Ok(())
+pub fn sync_flexget() -> Result<(), &'static str> {
+    return flexget_command("--no-cache --discover-now".to_string());
 }
 
-async fn dispatch_movie(text: Vec<&str>, flexget_path: &str) -> Result<(), Error> {
-    if text.len() <= 1 {
-        return Ok(());
-    }
+pub enum Media {
+    TV,
+    Movie
+}
 
-    let magnet_url = text[1];
+pub fn execute_magnet_url(magnet_url: String, media: Media) -> Result<(), &'static str> {
+    let command = match media {
+        TV => "download-tv-manual",
+        Movie => "download-movie-manual"
+    };
+
+    let command = format!("--task {} --cli-config 'magnet={{}}'", command);
+    // TODO: Add if tv else movie
+
+    // "--task download-movie-manual --cli-config \"magnet={}\"",
     let argument = format!(
-        "--task download-movie-manual --cli-config \"magnet={}\"",
+        "--task  --cli-config 'magnet={}'",
         magnet_url
     );
-    println!("{}", argument);
-    flexget_command(flexget_path, &argument);
 
-    Ok(())
-}
-
-async fn dispatch_tv(text: Vec<&str>, flexget_path: &str) -> Result<(), Error> {
-    if text.len() <= 1 {
-        return Ok(());
-    }
-
-    let magnet_url = text[1];
-    let argument = format!(
-        "--task download-tv-manual --cli-config 'magnet={}'",
-        magnet_url
-    );
-    flexget_command(flexget_path, &argument);
-
-    Ok(())
-}
-
-async fn dispatch_chat_id(api: Api, message: Message) -> Result<(), Error> {
-    let chat_id = message.chat.id();
-    let text = format!("Chat ID: {}", chat_id.to_string());
-
-    api.send(message.chat.text(text)).await?;
-
-    Ok(())
+    return flexget_command(argument.to_string());
 }

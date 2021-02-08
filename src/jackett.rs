@@ -165,7 +165,7 @@ async fn dispatch_from_reply(
             let torrent = jackett.torrents.iter().nth(real_index.into()).unwrap();
             println!("{:?}", is_tv_show(torrent.clone().categories));
 
-            //
+            // Error saying it didn't find the category
             // TODO: send magnet_url to flexget
         },
         None => {
@@ -177,3 +177,13 @@ async fn dispatch_from_reply(
 
     Ok(())
 }
+
+    // let url = "https://www.imdb.com/title/tt0347048/?ref_=hm_tpks_tt_1_pd_tp1_cp";
+    // let mut torrents: Vec<TelegramJackettResponse> = Vec::new();
+    // let https = hyper_rustls::HttpsConnector::new();
+    // let client: client::Client<_, hyper::Body> = client::Client::builder().build(https);
+
+    // let response = request_jackett("Lord of the rings".to_string(), client)
+    //     .await
+    //     .unwrap();
+    // torrents.push(response.clone());
