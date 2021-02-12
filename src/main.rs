@@ -1,15 +1,7 @@
 use std::env;
 use std::process::exit;
-// use std::fs;
-// use std::process::Command;
-
-// use size_format::SizeFormatterSI;
-// use url::form_urlencoded;
 
 use futures::StreamExt;
-
-// use hyper::{body::to_bytes, client, Body, Uri};
-// use std::str::FromStr;
 
 mod telegram;
 mod flexget;
@@ -22,11 +14,6 @@ use telegram_bot::Api;
 use telegram_bot::types::{UpdateKind, MessageKind};
 
 use crate::jackett::{TelegramJackettResponse, request_jackett};
-
-// use telegram_bot::*;
-// use telegram_bot::{Api,UpdateKind, ChatId, Message};
-// use telegram_bot::types::MessageKind;
-// use telegram_bot::types::Message;
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -57,7 +44,10 @@ async fn main() -> Result<(), String> {
                     MessageKind::Text { ref data, .. } => {
                         let text = data.split_whitespace().map(|s| s.to_string()).collect();
 
-                        handle_message(&api, &message, text, &mut responses).await;
+                        if let Err(_) = handle_message(&api, &message, text, &mut responses).await {
+                            // TODO: Add text to this error
+                            println!("Error when calling handle_message");
+                        };
                     }
                     _ => (),
                 },

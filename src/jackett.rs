@@ -11,6 +11,7 @@ use crate::flexget::Media;
 #[derive(serde::Deserialize)]
 struct Indexer {
     #[serde(rename(deserialize = "Name"))]
+    #[allow(dead_code)]
     name: String,
 }
 
@@ -61,13 +62,24 @@ fn jackett_token() -> Result<String, String> {
 
                 let file_content = fs::read_to_string(file_name);
 
-                let v: serde_json::Value =
-                    serde_json::from_str(file_content.unwrap().as_str()).unwrap();
+                match file_content {
+                    Ok(file_content) => {
+                        let v = serde_json::from_str(file_content.as_str());
 
-                if v["APIKey"] == serde_json::Value::Null {
-                    Err(String::from("Jackett file does not have key APIKey"))
-                } else {
-                    Ok(v["APIKey"].as_str().unwrap().to_string())
+                        let value: serde_json::Value = match v {
+                            Ok(v) => v,
+                            Err(err) => return Err(format!("{}", err))
+                        };
+
+                        if value["APIKey"] == serde_json::Value::Null {
+                            Err("Jackett file does not have key APIKey".to_string())
+                        } else {
+                            Ok(value["APIKey"].as_str().unwrap().to_string())
+                        }
+                    },
+                    Err(err) => {
+                        Err(format!("File error {}", err))
+                    }
                 }
             }
             Err(_) => Err(String::from(
@@ -110,7 +122,8 @@ pub async fn request_jackett(
 
     let response = TelegramJackettResponse { torrents };
 
-    return Ok(response);
+    // TODO: Check if torrents is empty. If so, have an error that it didn't find anything
+    Ok(response)
 }
 
 pub fn format_telegram_response(
@@ -178,13 +191,3 @@ pub async fn dispatch_from_reply(
         }
     }
 }
-
-    // let url = "https://www.imdb.com/title/tt0347048/?ref_=hm_tpks_tt_1_pd_tp1_cp";
-    // let mut torrents: Vec<TelegramJackettResponse> = Vec::new();
-    // let https = hyper_rustls::HttpsConnector::new();
-    // let client: client::Client<_, hyper::Body> = client::Client::builder().build(https);
-
-    // let response = request_jackett("Lord of the rings".to_string(), client)
-    //     .await
-    //     .unwrap();
-    // torrents.push(response.clone());

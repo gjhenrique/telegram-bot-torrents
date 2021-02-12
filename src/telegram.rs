@@ -5,7 +5,7 @@ use telegram_bot::{Api, ChatId, Message, ParseMode};
 
 use crate::flexget::{execute_magnet_url, sync_flexget, Media};
 use crate::jackett::{request_jackett, format_telegram_response, dispatch_from_reply, TelegramJackettResponse};
-use crate::imdb::{get_imdb_info};
+use crate::imdb::get_imdb_info;
 
 fn allowed_groups() -> Vec<ChatId> {
     return match env::var("TELEGRAM_ALLOWED_GROUPS") {
@@ -21,14 +21,14 @@ async fn dispatch_chat_id(message: Message) -> Result<String, String> {
     let chat_id = message.chat.id();
     let reply = format!("Chat ID: {}", chat_id.to_string());
 
-    return Ok(reply);
+    Ok(reply)
 }
 
 
 async fn dispatch_sync() -> Result<String, String> {
     sync_flexget()?;
 
-    return Ok("Finished syncing".to_string());
+    Ok("Finished syncing".to_string())
 }
 
 
@@ -39,7 +39,7 @@ async fn dispatch_tv(text: Vec<String>) -> Result<String, String> {
 
     execute_magnet_url(text[1].clone(), Media::TV)?;
 
-    return Ok("Magnet URL to Series".to_string());
+    Ok("Magnet URL to Series".to_string())
 }
 
 async fn dispatch_movie(text: Vec<String>) -> Result<String, String> {
@@ -49,7 +49,7 @@ async fn dispatch_movie(text: Vec<String>) -> Result<String, String> {
 
     execute_magnet_url(text[1].clone(), Media::Movie)?;
 
-    return Ok("Magnet URL to Movies".to_string());
+    Ok("Magnet URL to Movies".to_string())
 }
 
 async fn dispatch_from_imdb_url(imdb_url: String) -> Result<TelegramJackettResponse, String> {
@@ -80,9 +80,18 @@ async fn pick_choices(index:  u16, reply_text: String, torrents: Vec<TelegramJac
 
 pub async fn send_message(api: &Api, message: &Message, text: String) -> Result<(), ()> {
     let mut reply = message.text_reply(text);
-    api.send(reply.parse_mode(ParseMode::Html)).await;
 
-    return Ok(());
+    let result = api.send(reply.parse_mode(ParseMode::Html)).await;
+    match result {
+        Ok(_) => {
+            println!("Reply: {:?}", reply);
+            Ok(())
+        }
+        Err(err) => {
+            println!("Erorr when sending telegram message: {}", err);
+            Ok(())
+        }
+    }
 }
 
 fn add_response(response: Result<TelegramJackettResponse, String>, responses: &mut Vec<TelegramJackettResponse>) -> Result<String, String> {
@@ -100,7 +109,7 @@ fn add_response(response: Result<TelegramJackettResponse, String>, responses: &m
 
 pub async fn handle_message(api: &Api, message: &Message, text: Vec<String>, responses: &mut Vec<TelegramJackettResponse> ) -> Result<(), ()> {
     let chat_id = message.chat.id();
-    let mut result: Result<String, String> = Ok("".to_string());
+    let mut result: Result<String, String> = Ok("I didn't get it!".to_string());
 
     let prefix = text.first().unwrap();
     let suffix = text.last().unwrap();
@@ -109,13 +118,13 @@ pub async fn handle_message(api: &Api, message: &Message, text: Vec<String>, res
         result = dispatch_chat_id(message.clone()).await;
     }
 
-    // TODO: Add help
     if allowed_groups().is_empty() || allowed_groups().contains(&chat_id) {
-        if message.reply_to_message.is_some() {
+        if let Some(reply) = message.reply_to_message.clone() {
             let num = prefix.parse::<u16>();
             if let Ok(num) = num {
-                let reply_text = message.reply_to_message.clone().unwrap().text().unwrap();
-                result = pick_choices(num, reply_text, responses.clone()).await;
+                if let Some(reply_text) = reply.text() {
+                    result = pick_choices(num, reply_text, responses.clone()).await;
+                }
             }
         }
 
@@ -136,6 +145,7 @@ pub async fn handle_message(api: &Api, message: &Message, text: Vec<String>, res
             "/torrent-tv" => dispatch_tv(text).await,
             "/torrent-movie" => dispatch_movie(text).await,
             "/sync" => dispatch_sync().await,
+            // TODO: Add help
             "/search" => {
                 let response = dispatch_search(text).await;
                 add_response(response, responses)

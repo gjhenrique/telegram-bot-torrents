@@ -9,21 +9,30 @@ fn omdb_token() -> String {
     }
 }
 
-fn imdb_title(imdb_url: String) -> String {
-    // if url does has an error, answer with the error of the body
+fn imdb_title(imdb_url: String) -> Result<String, String> {
+    let url = imdb_url.parse::<Uri>();
 
-    // imdb_url
+    match url {
+        Ok(url) => {
+            let fragments = url
+                .path()
+                .split("/")
+                .map(|s| s.to_string())
+                .filter(|s| !s.is_empty())
+                .collect::<Vec<String>>();
 
-    let url = imdb_url.parse::<Uri>().unwrap();
-    return url
-        .path()
-        .split("/")
-        .map(|s| s.to_string())
-        .filter(|s| !s.is_empty())
-        .collect::<Vec<String>>()
-        .last()
-        .unwrap()
-        .clone();
+            let imdb_title = fragments.last();
+
+            match imdb_title {
+                Some(title) => Ok(title.to_string()),
+                None => Err("Couldn't find the imdb id from the url".to_string())
+            }
+        }
+        Err(err) => {
+            println!("{}", err);
+            Err("Undefined URL".to_string())
+        }
+    }
 }
 
 #[derive(serde::Deserialize)]
@@ -38,16 +47,16 @@ struct OmdbData {
     error: Option<String>,
 }
 
-pub async fn get_imdb_info(
-    imdb_url: String,
-) -> Result<String, String> {
+pub async fn get_imdb_info(imdb_url: String) -> Result<String, String> {
     let https = hyper_rustls::HttpsConnector::new();
     let client: client::Client<_, hyper::Body> = client::Client::builder().build(https);
 
-    let title = imdb_title(imdb_url);
     let token = omdb_token();
+    if token.is_empty() {
+        return Err("OMDB Token is not configured".to_string());
+    }
 
-    // if omdb api token is not set, say that the token needs to be configured
+    let title = imdb_title(imdb_url)?;
 
     let omdb_url = format!("http://www.omdbapi.com/?apikey={}&i={}", token, title);
     let res = client.get(Uri::from_str(&omdb_url).unwrap()).await.unwrap();
