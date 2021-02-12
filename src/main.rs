@@ -13,11 +13,15 @@ use futures::StreamExt;
 
 mod telegram;
 mod flexget;
+mod jackett;
+mod imdb;
 
 use telegram::handle_message;
 
 use telegram_bot::Api;
 use telegram_bot::types::{UpdateKind, MessageKind};
+
+use crate::jackett::{TelegramJackettResponse, request_jackett};
 
 // use telegram_bot::*;
 // use telegram_bot::{Api,UpdateKind, ChatId, Message};
@@ -37,6 +41,10 @@ async fn main() -> Result<(), String> {
         }
     }
 
+    let mut responses: Vec<TelegramJackettResponse> = Vec::new();
+    let response = request_jackett("Matrix".to_string()).await?;
+    responses.push(response);
+
     let telegram_token = env::var("TELEGRAM_BOT_TOKEN").expect("TELEGRAM_BOT_TOKEN not set");
 
     let api = Api::new(telegram_token);
@@ -49,7 +57,7 @@ async fn main() -> Result<(), String> {
                     MessageKind::Text { ref data, .. } => {
                         let text = data.split_whitespace().map(|s| s.to_string()).collect();
 
-                        handle_message(api.clone(), message.clone(), text).await;
+                        handle_message(&api, &message, text, &mut responses).await;
                     }
                     _ => (),
                 },

@@ -8,12 +8,37 @@ fn flexget_path() -> Option<String> {
     }
 }
 
-fn flexget_command(flexget_command: String) -> Result<(), &'static str> {
+pub enum Media {
+    TV,
+    Movie
+}
+
+
+pub fn execute_magnet_url(magnet_url: String, media: Media) -> Result<(), String> {
+    let command = match media {
+        Media::TV => "download-tv-manual",
+        Media::Movie => "download-movie-manual"
+    };
+
+    let command = format!("--task {} --cli-config 'magnet={}'", command, magnet_url);
+
+    flexget_command(command)?;
+
+    Ok(())
+}
+
+pub fn sync_flexget() -> Result<(), String> {
+    flexget_command("--no-cache --discover-now".to_string())?;
+
+    Ok(())
+}
+
+fn flexget_command(flexget_command: String) -> Result<(), String> {
     let path = flexget_path().unwrap();
 
     let command = Command::new("sh")
         .arg("-c")
-        .arg(format!("lslsls execute {}", flexget_command))
+        .arg(format!("flexget execute {}", flexget_command))
         .current_dir(path)
         .output();
 
@@ -23,40 +48,19 @@ fn flexget_command(flexget_command: String) -> Result<(), &'static str> {
                 return Ok(());
             } else {
                 println!("Stderr: {}", String::from_utf8_lossy(&c.stderr));
-                return Err("Error command-line");
+
+                let stderr = String::from_utf8(c.stderr);
+
+                if let Ok(stderr) = stderr {
+                    return Err(stderr);
+                } else {
+                    return Err("Error when converting stderr\nCheck logs".to_string());
+                }
             }
-            // println!("Stdout: {}", String::from_utf8_lossy(&c.stdout));
         }
         Err(err) => {
             println!("Error: {}", err.to_string());
-            return Err("Error");
+            return Err(err.to_string());
         }
     }
-}
-
-pub fn sync_flexget() -> Result<(), &'static str> {
-    return flexget_command("--no-cache --discover-now".to_string());
-}
-
-pub enum Media {
-    TV,
-    Movie
-}
-
-pub fn execute_magnet_url(magnet_url: String, media: Media) -> Result<(), &'static str> {
-    let command = match media {
-        TV => "download-tv-manual",
-        Movie => "download-movie-manual"
-    };
-
-    let command = format!("--task {} --cli-config 'magnet={{}}'", command);
-    // TODO: Add if tv else movie
-
-    // "--task download-movie-manual --cli-config \"magnet={}\"",
-    let argument = format!(
-        "--task  --cli-config 'magnet={}'",
-        magnet_url
-    );
-
-    return flexget_command(argument.to_string());
 }

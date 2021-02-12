@@ -1,3 +1,7 @@
+use hyper::{body::to_bytes, client, Body, Uri};
+use std::env;
+use std::str::FromStr;
+
 fn omdb_token() -> String {
     match env::var("OMDB_TOKEN") {
         Ok(token) => token,
@@ -34,10 +38,12 @@ struct OmdbData {
     error: Option<String>,
 }
 
-async fn get_imdb_info(
+pub async fn get_imdb_info(
     imdb_url: String,
-    client: client::Client<hyper_rustls::HttpsConnector<client::HttpConnector>>,
-) -> Result<String, Error> {
+) -> Result<String, String> {
+    let https = hyper_rustls::HttpsConnector::new();
+    let client: client::Client<_, hyper::Body> = client::Client::builder().build(https);
+
     let title = imdb_title(imdb_url);
     let token = omdb_token();
 
@@ -56,7 +62,7 @@ async fn get_imdb_info(
             return Ok(format!("{} ({})", v.title.unwrap(), v.year.unwrap()));
         }
         "False" => {
-            return Ok(v.error.unwrap());
+            return Ok(v.error.unwrap().to_string());
         }
         _ => {
             return Ok(String::from(str));

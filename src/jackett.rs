@@ -1,34 +1,12 @@
-fn jackett_host() -> String {
-    match env::var("JACKETT_HOST") {
-        Ok(host) => host,
-        Err(_) => String::from("http://localhost:9117"),
-    }
-}
+use hyper::{body::to_bytes, client, Body, Uri};
+use std::env;
+use std::fs;
 
-fn jackett_token() -> Result<String, String> {
-    match env::var("JACKETT_TOKEN") {
-        Ok(token) => Ok(token),
-        Err(_) => match env::var("JACKETT_DATA_DIR") {
-            Ok(data_dir) => {
-                let file_name = data_dir + "/ServerConfig.json";
+use size_format::SizeFormatterSI;
+use std::str::FromStr;
+use url::form_urlencoded;
 
-                let file_content = fs::read_to_string(file_name);
-
-                let v: serde_json::Value =
-                    serde_json::from_str(file_content.unwrap().as_str()).unwrap();
-
-                if v["APIKey"] == serde_json::Value::Null {
-                    Err(String::from("Jackett file does not have key APIKey"))
-                } else {
-                    Ok(v["APIKey"].as_str().unwrap().to_string())
-                }
-            }
-            Err(_) => Err(String::from(
-                "Set JACKETT_TOKEN or JACKETT_DATA_DIR if jackett is in the same host",
-            )),
-        },
-    }
-}
+use crate::flexget::Media;
 
 #[derive(serde::Deserialize)]
 struct Indexer {
@@ -63,14 +41,49 @@ struct JackettResponse {
 }
 
 #[derive(Clone)]
-struct TelegramJackettResponse {
+pub struct TelegramJackettResponse {
     torrents: Vec<Torrent>,
 }
 
-async fn request_jackett(
+fn jackett_host() -> String {
+    match env::var("JACKETT_HOST") {
+        Ok(host) => host,
+        Err(_) => String::from("http://localhost:9117"),
+    }
+}
+
+fn jackett_token() -> Result<String, String> {
+    match env::var("JACKETT_TOKEN") {
+        Ok(token) => Ok(token),
+        Err(_) => match env::var("JACKETT_DATA_DIR") {
+            Ok(data_dir) => {
+                let file_name = data_dir + "/ServerConfig.json";
+
+                let file_content = fs::read_to_string(file_name);
+
+                let v: serde_json::Value =
+                    serde_json::from_str(file_content.unwrap().as_str()).unwrap();
+
+                if v["APIKey"] == serde_json::Value::Null {
+                    Err(String::from("Jackett file does not have key APIKey"))
+                } else {
+                    Ok(v["APIKey"].as_str().unwrap().to_string())
+                }
+            }
+            Err(_) => Err(String::from(
+                "Set JACKETT_TOKEN or JACKETT_DATA_DIR if jackett is in the same host",
+            )),
+        },
+    }
+}
+
+
+pub async fn request_jackett(
     query_string: String,
-    client: client::Client<hyper_rustls::HttpsConnector<client::HttpConnector>>,
 ) -> Result<TelegramJackettResponse, String> {
+    let https = hyper_rustls::HttpsConnector::new();
+    let client: client::Client<_, hyper::Body> = client::Client::builder().build(https);
+
     let encoded_path: String = form_urlencoded::Serializer::new(String::new())
         .append_pair("apikey", jackett_token().unwrap().as_str())
         .append_pair("Query", query_string.as_str())
@@ -80,8 +93,7 @@ async fn request_jackett(
         jackett_host(),
         String::from("/api/v2.0/indexers/all/results?"),
         encoded_path,
-    ]
-    .join("");
+    ].join("");
 
     let res = client.get(Uri::from_str(&url).unwrap()).await.unwrap();
     let body: Body = res.into_body();
@@ -90,7 +102,7 @@ async fn request_jackett(
 
     let mut v: JackettResponse = serde_json::from_str(&str).unwrap();
     if v.indexers.len() == 0 && v.results.len() == 0 {
-        return Err("Add some indexers".to_string());
+        return Err("Empty indexers. Please add one in your jackett configuration".to_string());
     }
 
     v.results.sort_by_key(|d1| -d1.seeders);
@@ -101,20 +113,12 @@ async fn request_jackett(
     return Ok(response);
 }
 
-async fn dispatch_search(
-    api: Api,
-    message: Message,
+pub fn format_telegram_response(
     response: TelegramJackettResponse,
-) -> Result<(), Error> {
+) -> String {
     let info = format_torrent(response);
 
-    let formatted_text = format!("<pre>{}</pre>", info);
-
-    let mut reply = message.text_reply(formatted_text);
-
-    api.send(reply.parse_mode(ParseMode::Html)).await?;
-
-    Ok(())
+    format!("<pre>{}</pre>", info)
 }
 
 fn format_torrent(response: TelegramJackettResponse) -> String {
@@ -143,14 +147,11 @@ fn is_tv_show(categories: Vec<i64>) -> bool {
     return categories.iter().any(|c| c >= &3000 && c < &4000);
 }
 
-
-async fn dispatch_from_reply(
-    api: Api,
-    message: Message,
+pub async fn dispatch_from_reply(
     index: u16,
+    reply_text: String,
     torrents: Vec<TelegramJackettResponse>,
-) -> Result<(), Error> {
-    let reply_text = message.reply_to_message.unwrap().text().unwrap();
+) -> Result<(Media, String), String> {
     let real_index = index - 1;
 
     let jackett = torrents.clone().into_iter().find(|response| {
@@ -163,19 +164,19 @@ async fn dispatch_from_reply(
     match jackett {
         Some(jackett) => {
             let torrent = jackett.torrents.iter().nth(real_index.into()).unwrap();
-            println!("{:?}", is_tv_show(torrent.clone().categories));
 
-            // Error saying it didn't find the category
-            // TODO: send magnet_url to flexget
+            if is_tv_show(torrent.clone().categories) {
+                Ok((Media::TV, torrent.clone().magnet_uri))
+            } else if is_movie(torrent.clone().categories) {
+                Ok((Media::Movie, torrent.clone().magnet_uri))
+            } else {
+                Err("Category not found".to_string())
+            }
         },
         None => {
-            return Ok(());
+            Err("Couldn't find torrent".to_string())
         }
     }
-
-    // let torrent = jackett.unwrap().torrents.iter().nth(real_index.into()).unwrap();
-
-    Ok(())
 }
 
     // let url = "https://www.imdb.com/title/tt0347048/?ref_=hm_tpks_tt_1_pd_tp1_cp";
