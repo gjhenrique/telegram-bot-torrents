@@ -109,7 +109,7 @@ fn add_response(response: Result<TelegramJackettResponse, String>, responses: &m
 
 pub async fn handle_message(api: &Api, message: &Message, text: Vec<String>, responses: &mut Vec<TelegramJackettResponse> ) -> Result<(), ()> {
     let chat_id = message.chat.id();
-    let mut result: Result<String, String> = Ok("I didn't get it!".to_string());
+    let mut result: Result<String, String> = Err("I didn't get it!".to_string());
 
     let prefix = text.first().unwrap();
     let suffix = text.last().unwrap();
@@ -130,7 +130,7 @@ pub async fn handle_message(api: &Api, message: &Message, text: Vec<String>, res
 
         // TODO: Move to const
         let imdb_url  = "https://www.imdb.com";
-        if prefix.starts_with(imdb_url) || suffix.starts_with(imdb_url) {
+        if prefix.starts_with(imdb_url) || suffix.starts_with(imdb_url) || prefix == "/imdb" {
             let mut url = suffix;
 
             if prefix.starts_with(imdb_url) {
