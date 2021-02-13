@@ -1,6 +1,6 @@
 [package]
 name = "telegram-bot-torrents"
-version = "0.2.0"
+version = "0.1.0"
 authors = ["Guilherme Henrique <gjhenrique@gmail.com>"]
 edition = "2018"
 
