@@ -29,8 +29,8 @@ fn imdb_title(imdb_url: String) -> Result<String, String> {
             }
         }
         Err(err) => {
-            println!("{}", err);
-            Err("Undefined URL".to_string())
+            let error_msg = format!("Undefined IMDB url {}", err);
+            Err(error_msg.to_string())
         }
     }
 }

@@ -88,7 +88,7 @@ pub async fn send_message(api: &Api, message: &Message, text: String) -> Result<
             Ok(())
         }
         Err(err) => {
-            println!("Erorr when sending telegram message: {}", err);
+            println!("Error when sending telegram message: {}", err);
             Ok(())
         }
     }

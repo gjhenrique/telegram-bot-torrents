@@ -59,7 +59,6 @@ fn flexget_command(flexget_command: String) -> Result<(), String> {
             }
         }
         Err(err) => {
-            println!("Error: {}", err.to_string());
             return Err(err.to_string());
         }
     }
