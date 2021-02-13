@@ -15,11 +15,11 @@ jobs:
     - name: Compile x86 binary
       run: |
         cross build --release --target=x86_64-unknown-linux-gnu
-        cp target/x86_64-unknown-linux-gnu/release/torrent-bot telegram-bot-torrents.linux.x86
+        cp target/x86_64-unknown-linux-gnu/release/telegram-bot-torrents telegram-bot-torrents.linux.x86
     - name: Compile arm binary
       run: |
         cross build --release --target=arm-unknown-linux-gnueabihf
-        cp target/arm-unknown-linux-gnueabihf/release/torrent-bot telegram-bot-torrents.linux.armv6
+        cp target/arm-unknown-linux-gnueabihf/release/telegram-bot-torrents telegram-bot-torrents.linux.armv6
     - name: Upload binaries
       uses: actions/upload-artifact@v2
       with:
