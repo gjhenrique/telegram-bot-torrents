@@ -28,28 +28,28 @@ async fn dispatch_chat_id(message: Message) -> Result<String, String> {
 async fn dispatch_sync() -> Result<String, String> {
     sync_flexget()?;
 
-    Ok("Finished syncing".to_string())
+    Ok("🧲 Added torrent".to_string())
 }
 
 
 async fn dispatch_tv(text: Vec<String>) -> Result<String, String> {
     if text.len() <= 1 {
-        return Err("Send the magnet-url after command (/torrent-tv <magnet_url>)".to_string());
+        return Err("Send the magnet-url after command (/torrent-tv magnet_url)".to_string());
     }
 
     execute_magnet_url(text[1].clone(), Media::TV)?;
 
-    Ok("Magnet URL to Series".to_string())
+    Ok("🧲 Added torrent".to_string())
 }
 
 async fn dispatch_movie(text: Vec<String>) -> Result<String, String> {
     if text.len() <= 1 {
-        return Err("Send the magnet-url after command (/torrent-movie <magnet_url>)".to_string());
+        return Err("Send the magnet-url after command (/torrent-movie magnet_url)".to_string());
     }
 
     execute_magnet_url(text[1].clone(), Media::Movie)?;
 
-    Ok("Magnet URL to Movies".to_string())
+    Ok("🧲 Added torrent".to_string())
 }
 
 async fn dispatch_from_imdb_url(imdb_url: String) -> Result<TelegramJackettResponse, String> {
@@ -75,7 +75,7 @@ async fn pick_choices(index:  u16, reply_text: String, torrents: Vec<TelegramJac
 
     execute_magnet_url(magnet_url, media)?;
 
-    Ok("Added torrent".to_string())
+    Ok("🧲 Added torrent".to_string())
 }
 
 pub async fn send_message(api: &Api, message: &Message, text: String) -> Result<(), ()> {
@@ -109,7 +109,7 @@ fn add_response(response: Result<TelegramJackettResponse, String>, responses: &m
 
 pub async fn handle_message(api: &Api, message: &Message, text: Vec<String>, responses: &mut Vec<TelegramJackettResponse> ) -> Result<(), ()> {
     let chat_id = message.chat.id();
-    let mut result: Result<String, String> = Err("I didn't get it!".to_string());
+    let mut result: Result<String, String> = Err("🤷🏻‍♀️ I didn't get it!".to_string());
 
     let prefix = text.first().unwrap();
     let suffix = text.last().unwrap();
@@ -163,7 +163,7 @@ pub async fn handle_message(api: &Api, message: &Message, text: Vec<String>, res
             }
         }
         Err(text) => {
-            send_message(&api, &message, text.clone()).await?;
+            send_message(&api, &message, format!("❌ {}", text.clone())).await?;
         }
     };
     return Ok(());
