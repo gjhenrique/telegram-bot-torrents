@@ -1,10 +1,10 @@
 use std::env;
 use std::process::Command;
 
-fn flexget_path() -> Option<String> {
+fn flexget_path() -> Result<String, String> {
     match env::var("FLEXGET_PATH") {
-        Ok(host) => Some(host),
-        Err(_) => None,
+        Ok(host) => Ok(host),
+        Err(_) => Err("FLEXGET_PATH not configured".to_string()),
     }
 }
 
@@ -34,7 +34,7 @@ pub fn sync_flexget() -> Result<(), String> {
 }
 
 fn flexget_command(flexget_command: String) -> Result<(), String> {
-    let path = flexget_path().unwrap();
+    let path = flexget_path()?;
 
     let command = Command::new("sh")
         .arg("-c")
