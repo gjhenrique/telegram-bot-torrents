@@ -45,7 +45,8 @@ async fn main() -> Result<(), String> {
                         let text = data.split_whitespace().map(|s| s.to_string()).collect();
 
                         if let Err(_) = handle_message(&api, &message, text, &mut responses).await {
-                            println!("Error when calling handle_message");
+                            let error_msg = format!("Errors should be handled in handle_message {:?}", data);
+                            println!("{}", error_msg);
                         };
                     }
                     _ => (),
