@@ -4,8 +4,10 @@ use telegram_bot::prelude::*;
 use telegram_bot::{Api, ChatId, Message, ParseMode};
 
 use crate::flexget::{execute_magnet_url, sync_flexget, Media};
-use crate::jackett::{request_jackett, format_telegram_response, dispatch_from_reply, TelegramJackettResponse};
 use crate::imdb::get_imdb_info;
+use crate::jackett::{
+    dispatch_from_reply, format_telegram_response, request_jackett, TelegramJackettResponse,
+};
 
 fn allowed_groups() -> Vec<ChatId> {
     return match env::var("TELEGRAM_ALLOWED_GROUPS") {
@@ -24,13 +26,11 @@ async fn dispatch_chat_id(message: Message) -> Result<String, String> {
     Ok(reply)
 }
 
-
 async fn dispatch_sync() -> Result<String, String> {
     sync_flexget()?;
 
     Ok("🧲 Added torrent".to_string())
 }
-
 
 async fn dispatch_tv(text: Vec<String>) -> Result<String, String> {
     if text.len() <= 1 {
@@ -70,7 +70,11 @@ async fn dispatch_search(text: Vec<String>) -> Result<TelegramJackettResponse, S
     Ok(result)
 }
 
-async fn pick_choices(index:  u16, reply_text: String, torrents: Vec<TelegramJackettResponse>) -> Result<String, String> {
+async fn pick_choices(
+    index: u16,
+    reply_text: String,
+    torrents: Vec<TelegramJackettResponse>,
+) -> Result<String, String> {
     let (media, magnet_url) = dispatch_from_reply(index, reply_text, torrents).await?;
 
     execute_magnet_url(magnet_url, media)?;
@@ -94,20 +98,26 @@ pub async fn send_message(api: &Api, message: &Message, text: String) -> Result<
     }
 }
 
-fn add_response(response: Result<TelegramJackettResponse, String>, responses: &mut Vec<TelegramJackettResponse>) -> Result<String, String> {
+fn add_response(
+    response: Result<TelegramJackettResponse, String>,
+    responses: &mut Vec<TelegramJackettResponse>,
+) -> Result<String, String> {
     match response {
         Ok(response) => {
             let reply_text = format_telegram_response(response.clone());
             responses.push(response);
             Ok(reply_text)
         }
-        Err(err) => {
-            Err(err)
-        }
+        Err(err) => Err(err),
     }
 }
 
-pub async fn handle_message(api: &Api, message: &Message, text: Vec<String>, responses: &mut Vec<TelegramJackettResponse> ) -> Result<(), ()> {
+pub async fn handle_message(
+    api: &Api,
+    message: &Message,
+    text: Vec<String>,
+    responses: &mut Vec<TelegramJackettResponse>,
+) -> Result<(), ()> {
     let chat_id = message.chat.id();
     let mut result: Result<String, String> = Err("🤷🏻‍♀️ I didn't get it!".to_string());
 
@@ -129,8 +139,11 @@ pub async fn handle_message(api: &Api, message: &Message, text: Vec<String>, res
         }
 
         // TODO: Move to const
-        let imdb_url  = "https://www.imdb.com";
-        if prefix.starts_with(imdb_url) || suffix.starts_with(imdb_url) || prefix == "/imdb" {
+        let imdb_url = "https://www.imdb.com";
+        if prefix.starts_with(imdb_url)
+            || suffix.starts_with(imdb_url)
+            || (prefix == "/imdb" || suffix.starts_with(imdb_url))
+        {
             let mut url = suffix;
 
             if prefix.starts_with(imdb_url) {
@@ -152,7 +165,6 @@ pub async fn handle_message(api: &Api, message: &Message, text: Vec<String>, res
             }
             _ => result,
         };
-
     }
 
     println!("{:?}", result);

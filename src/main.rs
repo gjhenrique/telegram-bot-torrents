@@ -13,7 +13,7 @@ use telegram::handle_message;
 use telegram_bot::Api;
 use telegram_bot::types::{UpdateKind, MessageKind};
 
-use crate::jackett::{TelegramJackettResponse, request_jackett};
+use crate::jackett::TelegramJackettResponse;
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -29,8 +29,6 @@ async fn main() -> Result<(), String> {
     }
 
     let mut responses: Vec<TelegramJackettResponse> = Vec::new();
-    let response = request_jackett("Matrix".to_string()).await?;
-    responses.push(response);
 
     let telegram_token = env::var("TELEGRAM_BOT_TOKEN").expect("TELEGRAM_BOT_TOKEN not set");
 
