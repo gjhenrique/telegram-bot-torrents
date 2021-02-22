@@ -48,7 +48,7 @@ struct OmdbData {
 }
 
 pub async fn get_imdb_info(imdb_url: String) -> Result<String, String> {
-    let https = hyper_rustls::HttpsConnector::new();
+    let https = hyper_rustls::HttpsConnector::with_native_roots();
     let client: client::Client<_, hyper::Body> = client::Client::builder().build(https);
 
     let token = omdb_token()?;

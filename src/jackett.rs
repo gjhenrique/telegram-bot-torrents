@@ -88,7 +88,7 @@ fn jackett_token() -> Result<String, String> {
 }
 
 pub async fn request_jackett(query_string: String) -> Result<TelegramJackettResponse, String> {
-    let https = hyper_rustls::HttpsConnector::new();
+    let https = hyper_rustls::HttpsConnector::with_native_roots();
     let client: client::Client<_, hyper::Body> = client::Client::builder().build(https);
 
     let token = jackett_token()?;

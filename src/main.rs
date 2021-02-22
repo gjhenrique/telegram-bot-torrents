@@ -12,13 +12,14 @@ use telegram::handle_message;
 
 use telegram_bot::Api;
 use telegram_bot::types::{UpdateKind, MessageKind};
+use std::error::Error;
 
 use crate::jackett::TelegramJackettResponse;
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 #[tokio::main]
-async fn main() -> Result<(), String> {
+async fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
     if args.len() > 1 {
         let command = &args[1];
