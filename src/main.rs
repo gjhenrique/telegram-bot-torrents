@@ -3,17 +3,17 @@ use std::process::exit;
 
 use futures::StreamExt;
 
-mod telegram;
 mod flexget;
-mod jackett;
 mod imdb;
+mod jackett;
+mod telegram;
 mod transmission;
 
 use telegram::handle_message;
 
-use telegram_bot::Api;
-use telegram_bot::types::{UpdateKind, MessageKind};
 use std::error::Error;
+use telegram_bot::types::{MessageKind, UpdateKind};
+use telegram_bot::Api;
 
 use crate::jackett::TelegramJackettResponse;
 
@@ -45,7 +45,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         let text = data.split_whitespace().map(|s| s.to_string()).collect();
 
                         if let Err(_) = handle_message(&api, &message, text, &mut responses).await {
-                            let error_msg = format!("Errors should be handled in handle_message {:?}", data);
+                            let error_msg =
+                                format!("Errors should be handled in handle_message {:?}", data);
                             println!("{}", error_msg);
                         };
                     }

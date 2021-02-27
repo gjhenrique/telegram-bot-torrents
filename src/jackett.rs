@@ -206,7 +206,7 @@ pub async fn dispatch_from_reply(
                         return Err("Category not found for given torrent".to_string());
                     }
                 }
-                None => Err("No torrent for the given index".to_string())
+                None => Err("No torrent for the given index".to_string()),
             }
         }
         None => Err("Couldn't find torrent".to_string()),

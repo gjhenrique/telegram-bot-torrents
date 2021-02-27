@@ -3,12 +3,12 @@ use std::env;
 use telegram_bot::prelude::*;
 use telegram_bot::{Api, ChatId, Message, ParseMode};
 
-use crate::transmission::{add_torrent, Media};
 use crate::flexget::sync_flexget;
 use crate::imdb::get_imdb_info;
 use crate::jackett::{
     dispatch_from_reply, format_telegram_response, request_jackett, TelegramJackettResponse,
 };
+use crate::transmission::{add_torrent, Media};
 
 fn allowed_groups() -> Vec<ChatId> {
     return match env::var("TELEGRAM_ALLOWED_GROUPS") {

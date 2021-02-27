@@ -25,7 +25,7 @@ fn imdb_title(imdb_url: String) -> Result<String, String> {
 
             match imdb_title {
                 Some(title) => Ok(title.to_string()),
-                None => Err("Couldn't find the imdb id from the url".to_string())
+                None => Err("Couldn't find the imdb id from the url".to_string()),
             }
         }
         Err(err) => {
@@ -85,12 +85,19 @@ pub async fn get_imdb_info(imdb_url: String) -> Result<String, String> {
     let response = formatted_body.clone().response;
 
     if response.is_none() {
-        return Err(format!("OMDB didn't include a Response in the response {:?}", formatted_body));
+        return Err(format!(
+            "OMDB didn't include a Response in the response {:?}",
+            formatted_body
+        ));
     }
 
     match response.unwrap().as_ref() {
         "True" => {
-            return Ok(format!("{} ({})", formatted_body.title.unwrap(), formatted_body.year.unwrap()));
+            return Ok(format!(
+                "{} ({})",
+                formatted_body.title.unwrap(),
+                formatted_body.year.unwrap()
+            ));
         }
         "False" => {
             return Ok(formatted_body.error.unwrap().to_string());
