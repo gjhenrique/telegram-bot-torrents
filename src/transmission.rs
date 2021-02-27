@@ -100,8 +100,8 @@ async fn request_add_torrent(magnet_url: String, path: String) -> Result<(), Str
 
 pub async fn add_torrent(magnet_url: String, media: Media) -> Result<(), String> {
     let path = match media {
-        Media::TV => transmission_path("TRANSMISSION_MOVIE_PATH".to_string())?,
-        Media::Movie => transmission_path("TRANSMISSION_TV_PATH".to_string())?,
+        Media::TV => transmission_path("TRANSMISSION_TV_PATH".to_string())?,
+        Media::Movie => transmission_path("TRANSMISSION_MOVIE_PATH".to_string())?,
     };
 
     request_add_torrent(magnet_url, path.clone()).await?;
