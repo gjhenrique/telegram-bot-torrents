@@ -8,25 +8,6 @@ fn flexget_path() -> Result<String, String> {
     }
 }
 
-pub enum Media {
-    TV,
-    Movie
-}
-
-
-pub fn execute_magnet_url(magnet_url: String, media: Media) -> Result<(), String> {
-    let command = match media {
-        Media::TV => "download-tv-manual",
-        Media::Movie => "download-movie-manual"
-    };
-
-    let command = format!("--task {} --cli-config 'magnet={}'", command, magnet_url);
-
-    flexget_command(command)?;
-
-    Ok(())
-}
-
 pub fn sync_flexget() -> Result<(), String> {
     flexget_command("--no-cache --discover-now".to_string())?;
 

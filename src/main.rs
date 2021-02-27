@@ -7,6 +7,7 @@ mod telegram;
 mod flexget;
 mod jackett;
 mod imdb;
+mod transmission;
 
 use telegram::handle_message;
 

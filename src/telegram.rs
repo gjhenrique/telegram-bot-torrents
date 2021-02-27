@@ -3,7 +3,8 @@ use std::env;
 use telegram_bot::prelude::*;
 use telegram_bot::{Api, ChatId, Message, ParseMode};
 
-use crate::flexget::{execute_magnet_url, sync_flexget, Media};
+use crate::transmission::{add_torrent, Media};
+use crate::flexget::sync_flexget;
 use crate::imdb::get_imdb_info;
 use crate::jackett::{
     dispatch_from_reply, format_telegram_response, request_jackett, TelegramJackettResponse,
@@ -37,7 +38,7 @@ async fn dispatch_tv(text: Vec<String>) -> Result<String, String> {
         return Err("Send the magnet-url after command (/torrent-tv magnet_url)".to_string());
     }
 
-    execute_magnet_url(text[1].clone(), Media::TV)?;
+    add_torrent(text[1].clone(), Media::TV).await?;
 
     Ok("🧲 Added torrent".to_string())
 }
@@ -47,7 +48,7 @@ async fn dispatch_movie(text: Vec<String>) -> Result<String, String> {
         return Err("Send the magnet-url after command (/torrent-movie magnet_url)".to_string());
     }
 
-    execute_magnet_url(text[1].clone(), Media::Movie)?;
+    add_torrent(text[1].clone(), Media::Movie).await?;
 
     Ok("🧲 Added torrent".to_string())
 }
@@ -77,7 +78,7 @@ async fn pick_choices(
 ) -> Result<String, String> {
     let (media, magnet_url) = dispatch_from_reply(index, reply_text, torrents).await?;
 
-    execute_magnet_url(magnet_url, media)?;
+    add_torrent(magnet_url, media).await?;
 
     Ok("🧲 Added torrent".to_string())
 }
@@ -119,7 +120,7 @@ pub async fn handle_message(
     responses: &mut Vec<TelegramJackettResponse>,
 ) -> Result<(), ()> {
     let chat_id = message.chat.id();
-    let mut result: Result<String, String> = Err("🤷🏻‍♀️ I didn't get it!".to_string());
+    let mut result: Result<String, String> = Err("🤷🏻‍I didn't get it!".to_string());
 
     let prefix = text.first().unwrap();
     let suffix = text.last().unwrap();

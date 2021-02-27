@@ -6,7 +6,7 @@ use size_format::SizeFormatterSI;
 use std::str::FromStr;
 use url::form_urlencoded;
 
-use crate::flexget::Media;
+use crate::transmission::Media;
 
 #[derive(serde::Deserialize)]
 struct Indexer {
@@ -89,7 +89,7 @@ fn jackett_token() -> Result<String, String> {
 
 pub async fn request_jackett(query_string: String) -> Result<TelegramJackettResponse, String> {
     let https = hyper_rustls::HttpsConnector::with_native_roots();
-    let client: client::Client<_, hyper::Body> = client::Client::builder().build(https);
+    let client: client::Client<_> = client::Client::builder().build(https);
 
     let token = jackett_token()?;
 
