@@ -16,7 +16,6 @@ fn transmission_url() -> String {
         Ok(url) => url,
         Err(_) => "http://localhost:9091".to_string()
     }
-
 }
 
 pub enum Media {
