@@ -10,6 +10,19 @@ use crate::jackett::{
 };
 use crate::transmission::{add_torrent, Media};
 
+const HELP: &str = "
+/torrent-tv (Magnet Link)
+/torrent-movie (Magnet Link)
+/search (Movie or TV Show e.g. The Matrix or Simpsons s01e01)
+/imdb (Imdb link). Requires omdb token set https://www.omdbapi.com/
+
+Reply the magnet links with:
+Position of the torrent
+If jackett doesn't provide a category, it's possible to force with:
+tv (position)
+movie (position)
+";
+
 fn allowed_groups() -> Vec<ChatId> {
     return match env::var("TELEGRAM_ALLOWED_GROUPS") {
         Ok(val) => val
@@ -186,7 +199,7 @@ pub async fn handle_message(
             "/torrent-tv" => dispatch_tv(text).await,
             "/torrent-movie" => dispatch_movie(text).await,
             "/sync" => dispatch_sync().await,
-            // TODO: Add help
+            "/help" => Ok(HELP.to_string()),
             "/search" => {
                 let response = dispatch_search(text).await;
                 add_response(response, responses)
