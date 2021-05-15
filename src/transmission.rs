@@ -73,9 +73,14 @@ async fn request_add_torrent(magnet_url: String, path: String) -> Result<(), Str
     let https = hyper_rustls::HttpsConnector::with_native_roots();
     let client: client::Client<_> = client::Client::builder().build(https);
 
-    let response = request_transmission(&client, magnet_url.clone(), path.clone(), None)
-        .await
-        .unwrap();
+    let transmission_response = request_transmission(&client, magnet_url.clone(), path.clone(), None)
+        .await;
+
+    if transmission_response.is_err() {
+        return Err("Transmission replied with error".to_string());
+    }
+
+    let response = transmission_response.unwrap();
     if response.status() == 409 {
         let headers = response.headers();
         let header_value = headers.get("X-Transmission-Session-Id");
