@@ -75,10 +75,19 @@ async fn pick_choices(
     index: u16,
     reply_text: String,
     torrents: Vec<TelegramJackettResponse>,
+    mut media: Option<Media>
 ) -> Result<String, String> {
-    let (media, magnet_url) = dispatch_from_reply(index, reply_text, torrents).await?;
+    let (torrent_media, magnet_url) = dispatch_from_reply(index, reply_text, torrents).await?;
 
-    add_torrent(magnet_url, media).await?;
+    if media.is_none() && torrent_media.is_none() {
+        return Err("No category for given torrent.\nReply with tv (index) or movie (index) to force it".to_string());
+    }
+
+    if media.is_none() {
+        media = torrent_media;
+    }
+
+    add_torrent(magnet_url, media.unwrap()).await?;
 
     Ok("🧲 Added torrent".to_string())
 }
@@ -131,11 +140,29 @@ pub async fn handle_message(
 
     if allowed_groups().is_empty() || allowed_groups().contains(&chat_id) {
         if let Some(reply) = message.reply_to_message.clone() {
-            let num = prefix.parse::<u16>();
-            if let Ok(num) = num {
-                if let Some(reply_text) = reply.text() {
-                    result = pick_choices(num, reply_text, responses.clone()).await;
+            let num: Option<u16>;
+            let mut media: Option<Media> = None;
+
+            match prefix.as_str() {
+                "tv" => {
+                    media = Some(Media::TV);
+                    num =  suffix.parse::<u16>().ok();
                 }
+                "movie" => {
+                    media = Some(Media::Movie);
+                    num = suffix.parse::<u16>().ok();
+                }
+                _ => {
+                    num = prefix.parse::<u16>().ok();
+                }
+            }
+
+            if let Some(num) = num {
+                if let Some(reply_text) = reply.text() {
+                    result = pick_choices(num, reply_text, responses.clone(), media).await;
+                }
+            } else {
+                result = Err("Not a number.\nPossible solutions: (index), movie (index) or tv (index) ".to_string())
             }
         }
 

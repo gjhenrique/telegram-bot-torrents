@@ -182,7 +182,7 @@ pub async fn dispatch_from_reply(
     index: u16,
     reply_text: String,
     torrents: Vec<TelegramJackettResponse>,
-) -> Result<(Media, String), String> {
+) -> Result<(Option<Media>, String), String> {
     let real_index = index - 1;
 
     let jackett = torrents.clone().into_iter().find(|response| {
@@ -199,16 +199,16 @@ pub async fn dispatch_from_reply(
             match torrent {
                 Some(torrent) => {
                     if is_tv_show(torrent.clone().categories) {
-                        return Ok((Media::TV, torrent.clone().magnet_uri));
+                        return Ok((Some(Media::TV), torrent.clone().magnet_uri));
                     } else if is_movie(torrent.clone().categories) {
-                        return Ok((Media::Movie, torrent.clone().magnet_uri));
+                        return Ok((Some(Media::Movie), torrent.clone().magnet_uri));
                     } else {
-                        return Err("Category not found for given torrent".to_string());
+                        return Ok((None, torrent.clone().magnet_uri));
                     }
                 }
                 None => Err("No torrent for the given index".to_string()),
             }
         }
-        None => Err("Couldn't find torrent".to_string()),
+        None => Err("Couldn't find torrent in list".to_string()),
     }
 }
