@@ -9,7 +9,7 @@ telegram-bot = { git = "https://github.com/telegram-rs/telegram-bot", default-fe
 
 futures = "0.3"
 tokio = { version = "1.6", features = ["full"]}
-hyper = "0.14"
+hyper = { version = "0.14", features = ["client", "http1", "http2"] }
 hyper-rustls = "0.22"
 serde_json = "1.0"
 serde = "1.0"
