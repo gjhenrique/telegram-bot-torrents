@@ -16,10 +16,18 @@ jobs:
       run: |
         cross build --release --target=x86_64-unknown-linux-gnu
         cp target/x86_64-unknown-linux-gnu/release/telegram-bot-torrents telegram-bot-torrents.linux.x86
-    - name: Compile arm binary
+    - name: Compile armv6 binary
       run: |
         cross build --release --target=arm-unknown-linux-gnueabihf
         cp target/arm-unknown-linux-gnueabihf/release/telegram-bot-torrents telegram-bot-torrents.linux.armv6
+    - name: Compile armv7 binary
+      run: |
+        cross build --release --target=armv7-unknown-linux-gnueabihf
+        cp target/armv7-unknown-linux-gnueabihf/release/telegram-bot-torrents telegram-bot-torrents.linux.armv7
+    - name: Compile aarch64 binary
+      run: |
+        cross build --release --target=aarch64-unknown-linux-gnu
+        cp target/aarch64-unknown-linux-gnu/release/telegram-bot-torrents telegram-bot-torrents.linux.aarch64
     - name: Upload binaries
       uses: actions/upload-artifact@v2
       with:
