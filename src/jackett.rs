@@ -22,7 +22,7 @@ struct Torrent {
     #[serde(rename(deserialize = "Peers"))]
     peers: i64,
     #[serde(rename(deserialize = "MagnetUri"))]
-    magnet_uri: String,
+    magnet_uri: Option<String>,
     #[serde(rename(deserialize = "Title"))]
     title: String,
     #[serde(rename(deserialize = "Category"))]
@@ -198,12 +198,17 @@ pub async fn dispatch_from_reply(
 
             match torrent {
                 Some(torrent) => {
+                    let magnet_uri = torrent.clone().magnet_uri;
+                    if magnet_uri.is_none() {
+                        return Err("Torrent without URI. Select another".to_string());
+                    }
+
                     if is_tv_show(torrent.clone().categories) {
-                        return Ok((Some(Media::TV), torrent.clone().magnet_uri));
+                        return Ok((Some(Media::TV), magnet_uri.unwrap()));
                     } else if is_movie(torrent.clone().categories) {
-                        return Ok((Some(Media::Movie), torrent.clone().magnet_uri));
+                        return Ok((Some(Media::Movie), magnet_uri.unwrap()));
                     } else {
-                        return Ok((None, torrent.clone().magnet_uri));
+                        return Ok((None, magnet_uri.unwrap()));
                     }
                 }
                 None => Err("No torrent for the given index".to_string()),
