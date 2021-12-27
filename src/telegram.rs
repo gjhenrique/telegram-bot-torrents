@@ -3,7 +3,6 @@ use std::env;
 use telegram_bot::prelude::*;
 use telegram_bot::{Api, ChatId, Message, ParseMode};
 
-use crate::flexget::sync_flexget;
 use crate::imdb::get_imdb_info;
 use crate::jackett::{
     dispatch_from_reply, format_telegram_response, request_jackett, TelegramJackettResponse,
@@ -38,12 +37,6 @@ async fn dispatch_chat_id(message: Message) -> Result<String, String> {
     let reply = format!("Chat ID: {}", chat_id.to_string());
 
     Ok(reply)
-}
-
-async fn dispatch_sync() -> Result<String, String> {
-    sync_flexget()?;
-
-    Ok("🧲 Added torrent".to_string())
 }
 
 async fn dispatch_tv(text: Vec<String>) -> Result<String, String> {
@@ -198,7 +191,6 @@ pub async fn handle_message(
         result = match prefix.as_str() {
             "/torrent-tv" => dispatch_tv(text).await,
             "/torrent-movie" => dispatch_movie(text).await,
-            "/sync" => dispatch_sync().await,
             "/help" => Ok(HELP.to_string()),
             "/search" => {
                 let response = dispatch_search(text).await;

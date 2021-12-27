@@ -3,7 +3,6 @@ use std::process::exit;
 
 use futures::StreamExt;
 
-mod flexget;
 mod imdb;
 mod jackett;
 mod telegram;
