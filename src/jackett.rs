@@ -46,8 +46,8 @@ pub struct TelegramJackettResponse {
     torrents: Vec<Torrent>,
 }
 
-fn jackett_host() -> String {
-    match env::var("JACKETT_HOST") {
+fn jackett_url() -> String {
+    match env::var("JACKETT_URL") {
         Ok(host) => host,
         Err(_) => String::from("http://localhost:9117"),
     }
@@ -99,7 +99,7 @@ pub async fn request_jackett(query_string: String) -> Result<TelegramJackettResp
         .finish();
 
     let url = [
-        jackett_host(),
+        jackett_url(),
         String::from("/api/v2.0/indexers/all/results?"),
         encoded_path,
     ]
