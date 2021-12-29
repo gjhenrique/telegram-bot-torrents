@@ -41,18 +41,18 @@ TELEGRAM_BOT_TOKEN=token
 JACKETT_TOKEN=xyz
 # Another option is to get the token directly passing the configuration folder
 JACKETT_DATA_DIR=/home/user/.config/jackett
-# When not specified, the bot sends the requests to http://localhost:9117
-JACKETT_URL=http://localhost:9117
-# Only needed if /imdb command is issued ()
+# Defaults to http://localhost:9117
+JACKETT_URL=http://192.168.1.10:9117
+# Only needed if /imdb command is issued
 OMDB_TOKEN=xyz
-# Directory where TV torrents are downloaded
-TRANSMISSION_TV_PATH=/home/user/torrent
-# Directory where Movie torrents are downloaded
-TRANSMISSION_MOVIE_PATH=/home/torrent/media/torrent/Movies
+# Directory where TV torrents are stored
+TRANSMISSION_TV_PATH=/home/user/torrent/tv
+# Directory where Movie torrents are stored
+TRANSMISSION_MOVIE_PATH=/home/user/torrent/movies
 # If transmission requires
 TRANSMISSION_CREDENTIALS=admin:admin
-# When not specified, the bot sends the torrents to http://localhost:9117
-TRANSMISSION_URL=http://localhost:9091
+# Defaults to http://localhost:9117
+TRANSMISSION_URL=http://192.168.1.10:9091
 # Allowed ids to talk with the bot
 TELEGRAM_ALLOWED_GROUPS=1,2,3
 ```
