@@ -953,7 +953,6 @@ dependencies = [
 
 [[package]]
 name = "telegram-bot"
-version = "0.9.0"
 source = "git+https://github.com/telegram-rs/telegram-bot#07a9f9a1c76eaab2259bdc6241691187a46d69d1"
 dependencies = [
  "bytes",
@@ -969,7 +968,6 @@ dependencies = [
 
 [[package]]
 name = "telegram-bot-raw"
-version = "0.9.0"
 source = "git+https://github.com/telegram-rs/telegram-bot#07a9f9a1c76eaab2259bdc6241691187a46d69d1"
 dependencies = [
  "bytes",
