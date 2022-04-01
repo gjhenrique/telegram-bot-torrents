@@ -19,16 +19,12 @@ struct Indexer {
 struct Torrent {
     #[serde(rename(deserialize = "Seeders"))]
     seeders: i64,
-    #[serde(rename(deserialize = "Peers"))]
-    peers: i64,
     #[serde(rename(deserialize = "MagnetUri"))]
     magnet_uri: Option<String>,
     #[serde(rename(deserialize = "Title"))]
     title: String,
     #[serde(rename(deserialize = "Category"))]
     categories: Vec<i64>,
-    #[serde(rename(deserialize = "Details"))]
-    detail_url: String,
     #[serde(rename(deserialize = "Size"))]
     size: u64,
 }
