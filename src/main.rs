@@ -29,6 +29,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
+    let tracing = match env::var("ENABLE_TRACING") {
+        Ok(t) => t == "true",
+        Err(_) => false,
+    };
+
+    if tracing {
+        tracing::subscriber::set_global_default(
+            tracing_subscriber::FmtSubscriber::builder()
+                .with_env_filter("telegram_bot=trace")
+                .finish(),
+        ).unwrap();
+    }
     let mut responses: Vec<TelegramJackettResponse> = Vec::new();
 
     let telegram_token = env::var("TELEGRAM_BOT_TOKEN").expect("TELEGRAM_BOT_TOKEN not set");
