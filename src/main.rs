@@ -12,7 +12,7 @@ use telegram::handle_message;
 
 use std::error::Error;
 use telegram_bot::types::{MessageKind, UpdateKind};
-use telegram_bot::Api;
+use telegram_bot::{Api,UpdatesStream, AllowedUpdate};
 
 use crate::jackett::TelegramJackettResponse;
 
@@ -29,12 +29,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
+    let tracing = match env::var("ENABLE_TRACING") {
+        Ok(t) => t == "true",
+        Err(_) => false,
+    };
+
+    if tracing {
+        tracing::subscriber::set_global_default(
+            tracing_subscriber::FmtSubscriber::builder()
+                .with_env_filter("telegram_bot=trace")
+                .finish(),
+        ).unwrap();
+    }
     let mut responses: Vec<TelegramJackettResponse> = Vec::new();
 
     let telegram_token = env::var("TELEGRAM_BOT_TOKEN").expect("TELEGRAM_BOT_TOKEN not set");
 
     let api = Api::new(telegram_token);
-    let mut stream = api.stream();
+    let mut stream = UpdatesStream::new(&api);
+    stream.allowed_updates(&vec![AllowedUpdate::Message]);
 
     while let Some(update) = stream.next().await {
         if let Ok(update) = update {

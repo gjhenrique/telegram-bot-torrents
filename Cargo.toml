@@ -1,12 +1,14 @@
 [package]
 name = "telegram-bot-torrents"
-version = "0.3.3"
+version = "0.3.4"
 authors = ["Guilherme Henrique <gjhenrique@gmail.com>"]
 edition = "2018"
 
 [dependencies]
 telegram-bot = { git = "https://github.com/telegram-rs/telegram-bot", default-features = false, features = ["rustls"] }
 
+tracing = "0.1.32"
+tracing-subscriber = "0.2.0"
 futures = "0.3"
 tokio = { version = "1.15", features = ["full"]}
 hyper = { version = "0.14", features = ["client", "http1", "http2"] }
