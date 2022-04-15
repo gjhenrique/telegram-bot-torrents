@@ -1,5 +1,7 @@
 # telegram-bot-torrents
 
+![Docker release](https://img.shields.io/docker/v/gjhenrique/telegram-bot-torrents?sort=semver)
+
 Telegram Bot to search by torrents in [Jackett](https://github.com/Jackett/Jackett) indexers and forward it to [Transmission](https://transmissionbt.com/).
 
 ## Features
