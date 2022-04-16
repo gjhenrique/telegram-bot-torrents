@@ -6,14 +6,14 @@ RUN mkdir -p /app
 COPY telegram-bot-torrents* ./
 
 RUN bash -c "if [ '$TARGETPLATFORM' = 'linux/amd64' ]; then cp telegram-bot-torrents.linux.x86 /app/telegram-bot; fi"
-RUN bash -c "if [ '$TARGETPLATFORM' = 'linux/arm' ]; then cp telegram-bot-torrents.linux.armv7 /app/telegram-bot; fi"
+RUN bash -c "if [ '$TARGETPLATFORM' = 'linux/arm/v7' ]; then cp telegram-bot-torrents.linux.armv7 /app/telegram-bot; fi"
 RUN bash -c "if [ '$TARGETPLATFORM' = 'linux/arm64' ]; then cp telegram-bot-torrents.linux.aarch64 /app/telegram-bot; fi"
 
 RUN rm telegram-bot-torrents*
 
 RUN useradd --user-group --system --no-create-home --no-log-init bot
 RUN chown -R bot:bot /app
-RUN chmod +x "/app/telegram-bot"
+RUN chmod +x /app/telegram-bot
 
 USER bot
 
