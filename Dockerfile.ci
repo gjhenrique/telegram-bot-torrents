@@ -13,6 +13,7 @@ RUN rm telegram-bot-torrents*
 
 RUN useradd --user-group --system --no-create-home --no-log-init bot
 RUN chown -R bot:bot /app
+RUN chmod +x /app/telegram-bot
 USER bot
 
 CMD ["/app/telegram-bot"]
