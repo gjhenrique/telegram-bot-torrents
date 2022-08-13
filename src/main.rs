@@ -1,6 +1,7 @@
 use std::env;
 use std::process::exit;
 
+use futures::lock::Mutex;
 use futures::StreamExt;
 
 mod imdb;
@@ -11,6 +12,7 @@ mod transmission;
 use telegram::handle_message;
 
 use std::error::Error;
+use std::sync::Arc;
 use telegram_bot::types::{MessageKind, UpdateKind};
 use telegram_bot::{AllowedUpdate, Api, UpdatesStream};
 
@@ -42,7 +44,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         )
         .unwrap();
     }
-    let responses: Vec<TelegramJackettResponse> = Vec::new();
+    let responses: Arc<Mutex<Vec<TelegramJackettResponse>>> = Arc::new(Mutex::new(Vec::new()));
 
     let telegram_token = env::var("TELEGRAM_BOT_TOKEN").expect("TELEGRAM_BOT_TOKEN not set");
 
@@ -57,12 +59,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     MessageKind::Text { ref data, .. } => {
                         let text = data.split_whitespace().map(|s| s.to_string()).collect();
                         let cloned_api = api.clone();
-                        let mut cloned_responses = responses.clone();
+                        let mut shared_responses = Arc::clone(&responses);
                         let data_cloned = data.clone();
 
                         tokio::spawn(async move {
                             if let Err(_) =
-                                handle_message(&cloned_api, &message, text, &mut cloned_responses)
+                                handle_message(&cloned_api, &message, text, &mut shared_responses)
                                     .await
                             {
                                 let error_msg = format!(

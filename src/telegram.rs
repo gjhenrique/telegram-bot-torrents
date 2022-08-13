@@ -1,7 +1,10 @@
 use std::env;
 
+use futures::lock::Mutex;
 use telegram_bot::prelude::*;
 use telegram_bot::{Api, ChatId, Message, ParseMode};
+
+use std::sync::Arc;
 
 use crate::imdb::get_imdb_info;
 use crate::jackett::{
@@ -81,12 +84,15 @@ async fn pick_choices(
     index: u16,
     reply_text: String,
     torrents: Vec<TelegramJackettResponse>,
-    mut media: Option<Media>
+    mut media: Option<Media>,
 ) -> Result<String, String> {
     let (torrent_media, magnet_url) = dispatch_from_reply(index, reply_text, torrents).await?;
 
     if media.is_none() && torrent_media.is_none() {
-        return Err("No category for given torrent.\nReply with tv (index) or movie (index) to force it".to_string());
+        return Err(
+            "No category for given torrent.\nReply with tv (index) or movie (index) to force it"
+                .to_string(),
+        );
     }
 
     if media.is_none() {
@@ -114,14 +120,16 @@ pub async fn send_message(api: &Api, message: &Message, text: String) -> Result<
     }
 }
 
-fn add_response(
+async fn add_response(
     response: Result<TelegramJackettResponse, String>,
-    responses: &mut Vec<TelegramJackettResponse>,
+    responses: &mut Arc<Mutex<Vec<TelegramJackettResponse>>>,
 ) -> Result<String, String> {
     match response {
         Ok(response) => {
+            let mut r = responses.lock().await;
+
             let reply_text = format_telegram_response(response.clone());
-            responses.push(response);
+            r.push(response);
             Ok(reply_text)
         }
         Err(err) => Err(err),
@@ -132,7 +140,7 @@ pub async fn handle_message(
     api: &Api,
     message: &Message,
     text: Vec<String>,
-    responses: &mut Vec<TelegramJackettResponse>,
+    responses: &mut Arc<Mutex<Vec<TelegramJackettResponse>>>,
 ) -> Result<(), ()> {
     let chat_id = message.chat.id();
     let mut result: Result<String, String> = Err("🤷🏻‍I didn't get it!".to_string());
@@ -152,7 +160,7 @@ pub async fn handle_message(
             match prefix.as_str() {
                 "tv" => {
                     media = Some(Media::TV);
-                    num =  suffix.parse::<u16>().ok();
+                    num = suffix.parse::<u16>().ok();
                 }
                 "movie" => {
                     media = Some(Media::Movie);
@@ -165,10 +173,14 @@ pub async fn handle_message(
 
             if let Some(num) = num {
                 if let Some(reply_text) = reply.text() {
-                    result = pick_choices(num, reply_text, responses.clone(), media).await;
+                    let r = responses.lock().await;
+                    result = pick_choices(num, reply_text, r.clone(), media).await;
                 }
             } else {
-                result = Err("Not a number.\nPossible solutions: (index), movie (index) or tv (index) ".to_string())
+                result = Err(
+                    "Not a number.\nPossible solutions: (index), movie (index) or tv (index) "
+                        .to_string(),
+                )
             }
         }
 
@@ -185,7 +197,7 @@ pub async fn handle_message(
             }
 
             let response = dispatch_from_imdb_url(url.clone()).await;
-            result = add_response(response, responses)
+            result = add_response(response, responses).await;
         };
 
         result = match prefix.as_str() {
@@ -194,7 +206,7 @@ pub async fn handle_message(
             "/help" => Ok(HELP.to_string()),
             "/search" => {
                 let response = dispatch_search(text).await;
-                add_response(response, responses)
+                add_response(response, responses).await
             }
             _ => result,
         };
