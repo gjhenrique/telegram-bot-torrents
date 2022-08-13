@@ -12,7 +12,7 @@ use telegram::handle_message;
 
 use std::error::Error;
 use telegram_bot::types::{MessageKind, UpdateKind};
-use telegram_bot::{Api,UpdatesStream, AllowedUpdate};
+use telegram_bot::{AllowedUpdate, Api, UpdatesStream};
 
 use crate::jackett::TelegramJackettResponse;
 
@@ -39,9 +39,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             tracing_subscriber::FmtSubscriber::builder()
                 .with_env_filter("telegram_bot=trace")
                 .finish(),
-        ).unwrap();
+        )
+        .unwrap();
     }
-    let mut responses: Vec<TelegramJackettResponse> = Vec::new();
+    let responses: Vec<TelegramJackettResponse> = Vec::new();
 
     let telegram_token = env::var("TELEGRAM_BOT_TOKEN").expect("TELEGRAM_BOT_TOKEN not set");
 
@@ -55,12 +56,24 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 UpdateKind::Message(message) => match message.kind {
                     MessageKind::Text { ref data, .. } => {
                         let text = data.split_whitespace().map(|s| s.to_string()).collect();
+                        let cloned_api = api.clone();
+                        let mut cloned_responses = responses.clone();
+                        let data_cloned = data.clone();
 
-                        if let Err(_) = handle_message(&api, &message, text, &mut responses).await {
-                            let error_msg =
-                                format!("Errors should be handled in handle_message {:?}", data);
-                            println!("{}", error_msg);
-                        };
+                        tokio::spawn(async move {
+                            if let Err(_) =
+                                handle_message(&cloned_api, &message, text, &mut cloned_responses)
+                                    .await
+                            {
+                                let error_msg = format!(
+                                    "Errors should be handled in handle_message {:?}",
+                                    data_cloned.clone()
+                                );
+                                println!("{}", error_msg);
+                            };
+                        });
+
+                        ()
                     }
                     _ => (),
                 },
