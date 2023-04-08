@@ -2,7 +2,7 @@
 name = "telegram-bot-torrents"
 version = "0.4.2"
 authors = ["Guilherme Henrique <gjhenrique@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 telegram-bot = { git = "https://github.com/telegram-rs/telegram-bot", default-features = false, features = ["rustls"] }
