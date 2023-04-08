@@ -11,6 +11,7 @@ RUN bash -c "if [ '$TARGETPLATFORM' = 'linux/arm64' ]; then cp telegram-bot-torr
 
 RUN rm telegram-bot-torrents*
 
+RUN apt update && apt install -y ca-certificates
 RUN useradd --user-group --system --no-create-home --no-log-init bot
 RUN chown -R bot:bot /app
 RUN chmod +x /app/telegram-bot

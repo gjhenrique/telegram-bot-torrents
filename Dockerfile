@@ -1,15 +1,8 @@
-FROM rust:1.68 as build
-
-WORKDIR /build
+FROM rust:1.49
 
 COPY ./ ./
+
 RUN cargo build --release
-
-FROM rust:1.68
-
-WORKDIR /app
-
 RUN apt update && apt install -y ca-certificates
-COPY --from=build /build/target/release/telegram-bot-torrents /bin/telegram-bot-torrents
 
-CMD ["/bin/telegram-bot-torrents"]
+CMD ["./target/release/telegram-bot-torrents"]
