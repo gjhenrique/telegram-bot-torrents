@@ -27,6 +27,8 @@ struct Torrent {
     categories: Vec<i64>,
     #[serde(rename(deserialize = "Size"))]
     size: u64,
+    #[serde(rename(deserialize = "Link"))]
+    torrent_url: Option<String>,
 }
 
 #[derive(serde::Deserialize)]
@@ -35,6 +37,13 @@ struct JackettResponse {
     indexers: Vec<Indexer>,
     #[serde(rename(deserialize = "Results"))]
     results: Vec<Torrent>,
+}
+
+
+#[derive(Clone)]
+pub struct TorrentLocation {
+    pub content: String,
+    pub is_magnet: bool
 }
 
 #[derive(Clone)]
@@ -100,6 +109,8 @@ pub async fn request_jackett(query_string: String) -> Result<TelegramJackettResp
         encoded_path,
     ]
     .join("");
+
+    println!("Hihi {}", url);
 
     let uri = Uri::from_str(&url);
     if let Err(err) = uri {
@@ -174,11 +185,36 @@ fn is_tv_show(categories: Vec<i64>) -> bool {
     return categories.iter().any(|c| c >= &3000 && c < &4000);
 }
 
+pub async fn get_torrent_file_content(torrent_url: String) -> Result<String, String> {
+    let https = hyper_rustls::HttpsConnector::with_native_roots();
+    let client: client::Client<_> = client::Client::builder().build(https);
+    let url = Uri::from_str(&torrent_url);
+
+    if let Err(err) = url {
+        return Err(format!("Broken Jackett url {}", err));
+    }
+
+    let link_response = client.get(url.unwrap()).await;
+
+    if let Err(err) = link_response {
+        return Err(format!("Error when getting the link: {}", err));
+    }
+
+    let body: Body = link_response.unwrap().into_body();
+    let body = to_bytes(body).await;
+
+    if let Err(err) = body {
+        return Err(format!("Error {}", err));
+    }
+
+    return Ok(base64::encode(body.unwrap()));
+}
+
 pub async fn dispatch_from_reply(
     index: u16,
     reply_text: String,
     torrents: Vec<TelegramJackettResponse>,
-) -> Result<(Option<Media>, String), String> {
+) -> Result<(Option<Media>, TorrentLocation), String> {
     let real_index = index - 1;
 
     let jackett = torrents.clone().into_iter().find(|response| {
@@ -194,17 +230,29 @@ pub async fn dispatch_from_reply(
 
             match torrent {
                 Some(torrent) => {
-                    let magnet_uri = torrent.clone().magnet_uri;
-                    if magnet_uri.is_none() {
-                        return Err("Torrent without URI. Select another".to_string());
+                    let location: TorrentLocation;
+
+                    if torrent.magnet_uri.is_some() {
+                        location = TorrentLocation { content: torrent.magnet_uri.clone().unwrap(), is_magnet: true };
+
+                    } else if torrent.torrent_url.is_some() {
+                        let result = get_torrent_file_content(torrent.torrent_url.clone().unwrap()).await;
+
+                        if result.is_ok() {
+                            location = TorrentLocation { content: result.unwrap(), is_magnet: false };
+                        } else {
+                            return Err(result.err().unwrap())
+                        }
+                    } else {
+                        return Err("Torrent without URI. Please select another".to_string());
                     }
 
                     if is_tv_show(torrent.clone().categories) {
-                        return Ok((Some(Media::TV), magnet_uri.unwrap()));
+                        return Ok((Some(Media::TV), location));
                     } else if is_movie(torrent.clone().categories) {
-                        return Ok((Some(Media::Movie), magnet_uri.unwrap()));
+                        return Ok((Some(Media::Movie), location));
                     } else {
-                        return Ok((None, magnet_uri.unwrap()));
+                        return Ok((None, location));
                     }
                 }
                 None => Err("No torrent for the given index".to_string()),

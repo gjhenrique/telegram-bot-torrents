@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use crate::imdb::get_imdb_info;
 use crate::jackett::{
-    dispatch_from_reply, format_telegram_response, request_jackett, TelegramJackettResponse,
+    dispatch_from_reply, format_telegram_response, request_jackett, TelegramJackettResponse, TorrentLocation,
 };
 use crate::transmission::{add_torrent, Media};
 
@@ -47,7 +47,8 @@ async fn dispatch_tv(text: Vec<String>) -> Result<String, String> {
         return Err("Send the magnet-url after command (/torrent-tv magnet_url)".to_string());
     }
 
-    add_torrent(text[1].clone(), Media::TV).await?;
+    let location = TorrentLocation { is_magnet: true, content: text[1].clone() };
+    add_torrent(location, Media::TV).await?;
 
     Ok("🧲 Added torrent".to_string())
 }
@@ -57,7 +58,8 @@ async fn dispatch_movie(text: Vec<String>) -> Result<String, String> {
         return Err("Send the magnet-url after command (/torrent-movie magnet_url)".to_string());
     }
 
-    add_torrent(text[1].clone(), Media::Movie).await?;
+    let location = TorrentLocation { is_magnet: true, content: text[1].clone() };
+    add_torrent(location, Media::Movie).await?;
 
     Ok("🧲 Added torrent".to_string())
 }
@@ -86,7 +88,7 @@ async fn pick_choices(
     torrents: Vec<TelegramJackettResponse>,
     mut media: Option<Media>,
 ) -> Result<String, String> {
-    let (torrent_media, magnet_url) = dispatch_from_reply(index, reply_text, torrents).await?;
+    let (torrent_media, location) = dispatch_from_reply(index, reply_text, torrents).await?;
 
     if media.is_none() && torrent_media.is_none() {
         return Err(
@@ -99,7 +101,7 @@ async fn pick_choices(
         media = torrent_media;
     }
 
-    add_torrent(magnet_url, media.unwrap()).await?;
+    add_torrent(location, media.unwrap()).await?;
 
     Ok("🧲 Added torrent".to_string())
 }

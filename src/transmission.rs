@@ -1,7 +1,9 @@
 use hyper::header::AUTHORIZATION;
 use hyper::{client, Body, Request, Response};
-use serde_json::json;
+use serde_json::{json, Value};
 use std::env;
+
+use crate::jackett::TorrentLocation;
 
 fn transmission_path(env: String) -> Result<String, String> {
     match env::var(env) {
@@ -33,7 +35,7 @@ fn transmission_credentials() -> Option<String> {
 
 async fn request_transmission(
     client: &client::Client<hyper_rustls::HttpsConnector<client::HttpConnector>>,
-    magnet_url: String,
+    location: TorrentLocation,
     path: String,
     token: Option<String>,
 ) -> hyper::Result<Response<Body>> {
@@ -54,14 +56,26 @@ async fn request_transmission(
         headers.insert("X-Transmission-Session-Id", token.parse().unwrap());
     }
 
-    let body = json!({
-        "method": "torrent-add",
-        "arguments": {
-            "download-dir": path,
-            "filename": magnet_url,
+    let body: Value;
+    if location.is_magnet {
+        body = json!({
+            "method": "torrent-add",
+            "arguments": {
+                "download-dir": path,
+                "filename": location.content,
 
-        }
-    });
+            }
+        });
+    } else {
+        body = json!({
+            "method": "torrent-add",
+            "arguments": {
+                "download-dir": path,
+                "metainfo": location.content,
+
+            }
+        });
+    }
 
     let body = Body::from(body.to_string());
     let request = builder.body(body).unwrap();
@@ -69,11 +83,11 @@ async fn request_transmission(
     client.request(request).await
 }
 
-async fn request_add_torrent(magnet_url: String, path: String) -> Result<(), String> {
+async fn request_add_torrent(location: TorrentLocation, path: String) -> Result<(), String> {
     let https = hyper_rustls::HttpsConnector::with_native_roots();
     let client: client::Client<_> = client::Client::builder().build(https);
 
-    let transmission_response = request_transmission(&client, magnet_url.clone(), path.clone(), None)
+    let transmission_response = request_transmission(&client, location.clone(), path.clone(), None)
         .await;
 
     if transmission_response.is_err() {
@@ -85,13 +99,13 @@ async fn request_add_torrent(magnet_url: String, path: String) -> Result<(), Str
         let headers = response.headers();
         let header_value = headers.get("X-Transmission-Session-Id");
         if header_value.is_none() {
-            return Err("First request to transmission doesn't bring the token {}".to_string());
+            return Err("First request to transmission didn't bring the token {}".to_string());
         }
 
         let session_value = header_value.unwrap().to_str().unwrap().to_string();
         request_transmission(
             &client,
-            magnet_url.clone(),
+            location.clone(),
             path.clone(),
             Some(session_value),
         )
@@ -103,12 +117,12 @@ async fn request_add_torrent(magnet_url: String, path: String) -> Result<(), Str
     }
 }
 
-pub async fn add_torrent(magnet_url: String, media: Media) -> Result<(), String> {
+pub async fn add_torrent(location: TorrentLocation, media: Media) -> Result<(), String> {
     let path = match media {
         Media::TV => transmission_path("TRANSMISSION_TV_PATH".to_string())?,
         Media::Movie => transmission_path("TRANSMISSION_MOVIE_PATH".to_string())?,
     };
 
-    request_add_torrent(magnet_url, path.clone()).await?;
+    request_add_torrent(location, path.clone()).await?;
     Ok(())
 }
