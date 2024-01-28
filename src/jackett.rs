@@ -110,8 +110,6 @@ pub async fn request_jackett(query_string: String) -> Result<TelegramJackettResp
     ]
     .join("");
 
-    println!("Hihi {}", url);
-
     let uri = Uri::from_str(&url);
     if let Err(err) = uri {
         return Err(format!("Url misconfigured {}", err));
