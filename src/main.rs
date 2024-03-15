@@ -18,7 +18,7 @@ use telegram_bot::{AllowedUpdate, Api, UpdatesStream};
 
 use crate::jackett::TelegramJackettResponse;
 
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -31,10 +31,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let tracing = match env::var("ENABLE_TRACING") {
-        Ok(t) => t == "true",
-        Err(_) => false,
-    };
+    let tracing = env::var("ENABLE_TRACING").is_ok();
 
     if tracing {
         tracing::subscriber::set_global_default(
@@ -44,44 +41,43 @@ async fn main() -> Result<(), Box<dyn Error>> {
         )
         .unwrap();
     }
+
     let responses: Arc<Mutex<Vec<TelegramJackettResponse>>> = Arc::new(Mutex::new(Vec::new()));
 
     let telegram_token = env::var("TELEGRAM_BOT_TOKEN").expect("TELEGRAM_BOT_TOKEN not set");
 
     let api = Api::new(telegram_token);
     let mut stream = UpdatesStream::new(&api);
-    stream.allowed_updates(&vec![AllowedUpdate::Message]);
+    stream.allowed_updates(&[AllowedUpdate::Message]);
 
     while let Some(update) = stream.next().await {
-        if let Ok(update) = update {
-            match update.kind {
-                UpdateKind::Message(message) => match message.kind {
-                    MessageKind::Text { ref data, .. } => {
-                        let text = data.split_whitespace().map(|s| s.to_string()).collect();
-                        let cloned_api = api.clone();
-                        let mut shared_responses = Arc::clone(&responses);
-                        let data_cloned = data.clone();
-
-                        tokio::spawn(async move {
-                            if let Err(_) =
-                                handle_message(&cloned_api, &message, text, &mut shared_responses)
-                                    .await
-                            {
-                                let error_msg = format!(
-                                    "Errors should be handled in handle_message {:?}",
-                                    data_cloned.clone()
-                                );
-                                println!("{}", error_msg);
-                            };
-                        });
-
-                        ()
-                    }
-                    _ => (),
-                },
-                _ => (),
-            }
+        let Ok(update) = update else {
+            continue;
         };
+
+        let UpdateKind::Message(message) = update.kind else {
+            continue;
+        };
+
+        let MessageKind::Text { ref data, .. } = message.kind else {
+            continue;
+        };
+
+        let text = data.split_whitespace().map(|s| s.to_string()).collect();
+        let cloned_api = api.clone();
+        let mut shared_responses = Arc::clone(&responses);
+        let data_cloned = data.clone();
+
+        tokio::spawn(async move {
+            let handle = handle_message(&cloned_api, &message, text, &mut shared_responses);
+            if (handle.await).is_err() {
+                let error_msg = format!(
+                    "Errors should be handled in handle_message {:?}",
+                    data_cloned.clone()
+                );
+                println!("{}", error_msg);
+            };
+        });
     }
 
     Ok(())
