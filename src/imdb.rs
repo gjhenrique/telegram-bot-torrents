@@ -10,28 +10,22 @@ fn omdb_token() -> Result<String, String> {
 }
 
 fn imdb_title(imdb_url: String) -> Result<String, String> {
-    let url = imdb_url.parse::<Uri>();
+    let uri = imdb_url
+        .parse::<Uri>()
+        .map_err(|err| format!("Undefined IMDB url {}", err))?;
 
-    match url {
-        Ok(url) => {
-            let fragments = url
-                .path()
-                .split("/")
-                .map(|s| s.to_string())
-                .filter(|s| !s.is_empty())
-                .collect::<Vec<String>>();
+    let fragments = uri
+        .path()
+        .split('/')
+        .map(|s| s.to_string())
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<String>>();
 
-            let imdb_title = fragments.last();
+    let imdb_title = fragments.last();
 
-            match imdb_title {
-                Some(title) => Ok(title.to_string()),
-                None => Err("Couldn't find the imdb id from the url".to_string()),
-            }
-        }
-        Err(err) => {
-            let error_msg = format!("Undefined IMDB url {}", err);
-            Err(error_msg.to_string())
-        }
+    match imdb_title {
+        Some(title) => Ok(title.to_string()),
+        None => Err("Couldn't find the imdb id from the url".into()),
     }
 }
 
@@ -92,18 +86,12 @@ pub async fn get_imdb_info(imdb_url: String) -> Result<String, String> {
     }
 
     match response.unwrap().as_ref() {
-        "True" => {
-            return Ok(format!(
-                "{} ({})",
-                formatted_body.title.unwrap(),
-                formatted_body.year.unwrap()
-            ));
-        }
-        "False" => {
-            return Ok(formatted_body.error.unwrap().to_string());
-        }
-        _ => {
-            return Ok(String::from(str));
-        }
+        "True" => Ok(format!(
+            "{} ({})",
+            formatted_body.title.unwrap(),
+            formatted_body.year.unwrap()
+        )),
+        "False" => Ok(formatted_body.error.unwrap().to_string()),
+        _ => Ok(String::from(str)),
     }
 }

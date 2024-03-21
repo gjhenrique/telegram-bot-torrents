@@ -1,24 +1,18 @@
 use hyper::header::AUTHORIZATION;
 use hyper::{client, Body, Request, Response};
-use serde_json::{json, Value};
+use serde_json::json;
 use std::env;
 
 use crate::jackett::TorrentLocation;
 
 fn transmission_path(env: String) -> Result<String, String> {
-    match env::var(env) {
-        Ok(path) => Ok(path),
-        Err(_) => {
-            Err("TRANSMISSION_TV_PATH or TRANSMISSION_MOVIE_PATH env var is not set".to_string())
-        }
-    }
+    env::var(env).map_err(|_| {
+        "TRANSMISSION_TV_PATH or TRANSMISSION_MOVIE_PATH env var is not set".to_string()
+    })
 }
 
 fn transmission_url() -> String {
-    match env::var("TRANSMISSION_URL") {
-        Ok(url) => url,
-        Err(_) => "http://localhost:9091".to_string(),
-    }
+    env::var("TRANSMISSION_URL").map_or("http://localhost:9091".to_string(), |url| url)
 }
 
 pub enum Media {
@@ -27,10 +21,7 @@ pub enum Media {
 }
 
 fn transmission_credentials() -> Option<String> {
-    match env::var("TRANSMISSION_CREDENTIALS") {
-        Ok(creds) => Some(creds),
-        Err(_) => None,
-    }
+    env::var("TRANSMISSION_CREDENTIALS").ok()
 }
 
 async fn request_transmission(
@@ -56,28 +47,25 @@ async fn request_transmission(
         headers.insert("X-Transmission-Session-Id", token.parse().unwrap());
     }
 
-    let body: Value;
-    if location.is_magnet {
-        body = json!({
+    let json = if location.is_magnet {
+        json!({
             "method": "torrent-add",
             "arguments": {
                 "download-dir": path,
                 "filename": location.content,
-
             }
-        });
+        })
     } else {
-        body = json!({
+        json!({
             "method": "torrent-add",
             "arguments": {
                 "download-dir": path,
                 "metainfo": location.content,
-
             }
-        });
-    }
+        })
+    };
 
-    let body = Body::from(body.to_string());
+    let body = json.to_string().into();
     let request = builder.body(body).unwrap();
 
     client.request(request).await
@@ -87,8 +75,8 @@ async fn request_add_torrent(location: TorrentLocation, path: String) -> Result<
     let https = hyper_rustls::HttpsConnector::with_native_roots();
     let client: client::Client<_> = client::Client::builder().build(https);
 
-    let transmission_response = request_transmission(&client, location.clone(), path.clone(), None)
-        .await;
+    let transmission_response =
+        request_transmission(&client, location.clone(), path.clone(), None).await;
 
     if transmission_response.is_err() {
         return Err("Transmission replied with error".to_string());
@@ -103,17 +91,12 @@ async fn request_add_torrent(location: TorrentLocation, path: String) -> Result<
         }
 
         let session_value = header_value.unwrap().to_str().unwrap().to_string();
-        request_transmission(
-            &client,
-            location.clone(),
-            path.clone(),
-            Some(session_value),
-        )
-        .await
-        .unwrap();
+        request_transmission(&client, location.clone(), path.clone(), Some(session_value))
+            .await
+            .unwrap();
         Ok(())
     } else {
-        return Err(format!("Error on transmission {}", response.status()));
+        Err(format!("Error on transmission {}", response.status()))
     }
 }
 
