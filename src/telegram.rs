@@ -8,7 +8,8 @@ use std::sync::Arc;
 
 use crate::imdb::get_imdb_info;
 use crate::jackett::{
-    dispatch_from_reply, format_telegram_response, request_jackett, TelegramJackettResponse, TorrentLocation,
+    dispatch_from_reply, format_telegram_response, request_jackett, TelegramJackettResponse,
+    TorrentLocation,
 };
 use crate::transmission::{add_torrent, Media};
 
@@ -28,7 +29,7 @@ movie (position)
 fn allowed_groups() -> Vec<ChatId> {
     return match env::var("TELEGRAM_ALLOWED_GROUPS") {
         Ok(val) => val
-            .split(",")
+            .split(',')
             .map(|x| ChatId::new(x.parse::<i64>().unwrap()))
             .collect::<Vec<ChatId>>(),
         Err(_) => Vec::new(),
@@ -37,7 +38,7 @@ fn allowed_groups() -> Vec<ChatId> {
 
 async fn dispatch_chat_id(message: Message) -> Result<String, String> {
     let chat_id = message.chat.id();
-    let reply = format!("Chat ID: {}", chat_id.to_string());
+    let reply = format!("Chat ID: {}", chat_id);
 
     Ok(reply)
 }
@@ -47,7 +48,10 @@ async fn dispatch_tv(text: Vec<String>) -> Result<String, String> {
         return Err("Send the magnet-url after command (/torrent-tv magnet_url)".to_string());
     }
 
-    let location = TorrentLocation { is_magnet: true, content: text[1].clone() };
+    let location = TorrentLocation {
+        is_magnet: true,
+        content: text[1].clone(),
+    };
     add_torrent(location, Media::TV).await?;
 
     Ok("🧲 Added torrent".to_string())
@@ -58,7 +62,10 @@ async fn dispatch_movie(text: Vec<String>) -> Result<String, String> {
         return Err("Send the magnet-url after command (/torrent-movie magnet_url)".to_string());
     }
 
-    let location = TorrentLocation { is_magnet: true, content: text[1].clone() };
+    let location = TorrentLocation {
+        is_magnet: true,
+        content: text[1].clone(),
+    };
     add_torrent(location, Media::Movie).await?;
 
     Ok("🧲 Added torrent".to_string())
@@ -217,13 +224,13 @@ pub async fn handle_message(
     println!("{:?}", result);
     match result {
         Ok(text) => {
-            if text != "" {
-                send_message(&api, &message, text.clone()).await?;
+            if !text.is_empty() {
+                send_message(api, message, text.clone()).await?;
             }
         }
         Err(text) => {
-            send_message(&api, &message, format!("❌ {}", text.clone())).await?;
+            send_message(api, message, format!("❌ {}", text.clone())).await?;
         }
     };
-    return Ok(());
+    Ok(())
 }
