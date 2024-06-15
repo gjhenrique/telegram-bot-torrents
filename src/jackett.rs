@@ -216,10 +216,13 @@ pub async fn dispatch_from_reply(
     let real_index = index - 1;
 
     let jackett = torrents.clone().into_iter().find(|response| {
-        format_torrent(response.clone())
-            .split_whitespace()
-            .collect::<String>()
-            == reply_text.split_whitespace().collect::<String>()
+        let decoded_response = decode_html_entities(
+            format_torrent(response.clone())
+                .split_whitespace()
+                .collect::<String>()
+        );
+
+        return decoded_response == reply_text.split_whitespace().collect::<String>();
     });
 
     match jackett {
@@ -256,6 +259,17 @@ pub async fn dispatch_from_reply(
                 None => Err("No torrent for the given index".to_string()),
             }
         }
-        None => Err("Couldn't find torrent in list".to_string()),
+        None => Err("Couldn't find torrent in the list".to_string()),
     }
+}
+
+fn decode_html_entities(input: String) -> String {
+    input
+        .replace("&nbsp;", " ")
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&apos;", "'")
+        .replace("&#039;", "'")
 }
